@@ -1,0 +1,14 @@
+feature_engineering:
+  renaming_columns:
+    "season": "season"
+    "holiday": "is_holiday"
+    "weekday": "is_weekday"
+    "workingday": "is_workingday"
+    "weathersit": "weather"
+    "temp": "temperature"
+    "atemp": "apparent_temperature"
+    "hum": "humidity"
+    "windspeed": "windspeed"
+    "casual": "casual_users"
+    "registered": "registered_users"
+    "cnt": "total_users"
