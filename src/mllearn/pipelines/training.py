@@ -1,6 +1,6 @@
 from kedro.pipeline import Pipeline, node, pipeline
 
-from .nodes import prepare_model_table, time_split, predict_model
+from .nodes import prepare_model_table, time_split, predict_model, score_model
 
 
 def create_training_pipeline() -> Pipeline:
@@ -23,6 +23,12 @@ def create_training_pipeline() -> Pipeline:
                 inputs=["X_train", "y_train", "X_test"],
                 outputs="predictions",
                 name="predict_model",
+            ),
+            node(
+                func=score_model,
+                inputs=["y_test", "predictions"],
+                outputs="metrics",
+                name="score_model",
             ),
         ]
     )

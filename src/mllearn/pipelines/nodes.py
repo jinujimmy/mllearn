@@ -1,6 +1,7 @@
 import pandas as pd
 from typing import Dict
 from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 
 def rename_columns(df: pd.DataFrame, renaming_map: Dict[str, str]) -> pd.DataFrame:
@@ -42,3 +43,11 @@ def predict_model(
     model.fit(X_train, y_train.squeeze())
     pred = model.predict(X_test)
     return pd.DataFrame({"predicted_users": pred})
+
+
+def score_model(y_true: pd.DataFrame, y_hat: pd.DataFrame) -> dict:
+    """Test MAE/RMSE. Same numbers as the notebook score() helper."""
+    mae = float(mean_absolute_error(y_true.squeeze(), y_hat.squeeze()))
+    rmse = float(mean_squared_error(y_true.squeeze(), y_hat.squeeze()) ** 0.5)
+    print(f"{'HistGradientBoosting':20s}  MAE={mae:6.1f}  RMSE={rmse:6.1f}")
+    return {"mae": round(mae, 1), "rmse": round(rmse, 1)}

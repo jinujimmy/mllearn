@@ -34,3 +34,7 @@ y_test:
 predictions:
   type: pandas.CSVDataset
   filepath: data/07_model_output/predictions.csv
+
+metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/metrics.json
