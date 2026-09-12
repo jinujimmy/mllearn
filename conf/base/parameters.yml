@@ -18,3 +18,6 @@ prepare_data:
     - instant
     - casual_users
     - registered_users
+
+time_split:
+  cutoff: "2012-10-01"
