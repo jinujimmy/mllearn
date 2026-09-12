@@ -1,98 +1,51 @@
-# MLLearn
+# MLLearn — hourly bike-share demand
 
-[![Powered by Kedro](https://img.shields.io/badge/powered_by-kedro-ffc900?logo=kedro)](https://kedro.org)
+Kedro pipeline that predicts **how many riders use the system in a given hour** (`total_users`), using calendar and weather only. Built as a learning project that follows the same steps an analyst would take: define the target, block leakage, split in time, beat a naive baseline, then show **where** the model is still wrong.
 
-## Overview
+**Data:** [UCI Bike Sharing (hourly)](https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset). Files under `data/` are not in git.
 
-This is your new Kedro project, which was generated using `kedro 1.0.0`.
+A naive forecast that always uses the **train-period mean** (~185 riders) misses the test set by about **157 MAE**. A no-lag `HistGradientBoostingRegressor` on season, hour, holiday/workday, and weather cuts that to **44.8 MAE / 68.9 RMSE** on hours from **1 Oct 2012 onward**.
 
-Take a look at the [Kedro documentation](https://docs.kedro.org) to get started.
+That is useful for staffing and capacity in the average hour. Residual plots still show **commute peaks** (roughly 7–8 and 17–19) as the expensive misses — not a reason to treat the model as a full operations system yet.
 
-## Rules and guidelines
+## Process 
 
-In order to get the best out of the template:
+- **Target** is `cnt` renamed to `total_users`. `casual_users` + `registered_users` *are* the target, so those columns never go into `X`. Row id `instant` is dropped too.
+- **Data was sorted by time and Split is by time**, not a shuffled sklearn split. Train = rows before `2012-10-01`; test = the rest (~15.2k / 2.2k hours).
+- **No lag features in this baseline** on purpose. The model can only use information available in that hour’s calendar and weather. Lags (24h / 168h) are a next experiment, not hidden in this run.
 
-* Don't remove any lines from the `.gitignore` file we provide
-* Make sure your results can be reproduced by following a data engineering convention
-* Don't commit data to your repository
-* Don't commit any credentials or your local configuration to your repository. Keep all your credentials and local configuration in `conf/local/`
+## Pipeline (Kedro)
 
-## How to install dependencies
+`uv run kedro run` (or `uv run kedro run --pipeline=training`):
 
-Declare any dependencies in `requirements.txt` for `pip` installation.
+| Step | What it does |
+|---|---|
+| Rename | Map raw UCI names to readable columns |
+| Prepare | Parse `datetime`, sort, drop leakage/id |
+| Time split | Cutoff from `conf/base/parameters.yml` |
+| Predict | Fit HGB (`random_state=42`) and write test predictions |
+| Score | MAE / RMSE → `data/08_reporting/metrics.json` |
+| Plot | First test week actual vs predicted, and MAE by hour of day |
 
-To install them, run:
+Code lives in `src/mllearn/pipelines/`. Settings: `conf/base/parameters.yml`, `conf/base/catalog.yml`. The same logic is walked through in `notebooks/modelling.ipynb`.
 
-```
-pip install -r requirements.txt
-```
+## Reproduce locally
 
-## How to run your Kedro pipeline
+Python 3.12. This repo uses **uv** (Kedro is not assumed to be on your PATH).
 
-You can run your Kedro project with:
-
-```
-kedro run
-```
-
-## How to test your Kedro project
-
-Have a look at the file `tests/test_run.py` for instructions on how to write your tests. You can run your tests as follows:
-
-```
-pytest
+```bash
+uv sync
+# Place the hourly CSV at data/01_raw/bike_sharing_hour_data.csv
+uv run kedro run
 ```
 
-You can configure the coverage threshold in your project's `pyproject.toml` file under the `[tool.coverage.report]` section.
+Do not commit CSVs, credentials, or `conf/local/`.
 
+## Next (intentional backlog)
 
-## Project dependencies
+- Lag 24 and 168 on `total_users`
+- Compare CatBoost to HGB
+- Mean-by-hour dummy as a stronger naive baseline
+- Persist the fitted model as a pickle for a later inference path
 
-To see and update the dependency requirements for your project use `requirements.txt`. You can install the project requirements with `pip install -r requirements.txt`.
-
-[Further information about project dependencies](https://docs.kedro.org/en/stable/kedro_project_setup/dependencies.html#project-specific-dependencies)
-
-## How to work with Kedro and notebooks
-
-> Note: Using `kedro jupyter` or `kedro ipython` to run your notebook provides these variables in scope: `context`, 'session', `catalog`, and `pipelines`.
->
-> Jupyter, JupyterLab, and IPython are already included in the project requirements by default, so once you have run `pip install -r requirements.txt` you will not need to take any extra steps before you use them.
-
-### Jupyter
-To use Jupyter notebooks in your Kedro project, you need to install Jupyter:
-
-```
-pip install jupyter
-```
-
-After installing Jupyter, you can start a local notebook server:
-
-```
-kedro jupyter notebook
-```
-
-### JupyterLab
-To use JupyterLab, you need to install it:
-
-```
-pip install jupyterlab
-```
-
-You can also start JupyterLab:
-
-```
-kedro jupyter lab
-```
-
-### IPython
-And if you want to run an IPython session:
-
-```
-kedro ipython
-```
-
-### How to ignore notebook output cells in `git`
-To automatically strip out all output cell contents before committing to `git`, you can use tools like [`nbstripout`](https://github.com/kynan/nbstripout). For example, you can add a hook in `.git/config` with `nbstripout --install`. This will run `nbstripout` before anything is committed to `git`.
-
-> *Note:* Your output cells will be retained locally.
- 
+See `notes/later-optional.md`.
