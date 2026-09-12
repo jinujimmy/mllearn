@@ -10,3 +10,31 @@ raw_data:
 renamed_data:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/renamed_data.csv
+
+model_table:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/model_table.csv
+
+X_train:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/X_train.csv
+
+y_train:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_train.csv
+
+X_test:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/X_test.csv
+
+y_test:
+  type: pandas.CSVDataset
+  filepath: data/05_model_input/y_test.csv
+
+regressor:
+  type: pickle.PickleDataset
+  filepath: data/06_models/hist_gb.pkl
+
+model_metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/metrics.json

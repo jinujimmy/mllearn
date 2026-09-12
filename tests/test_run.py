@@ -1,25 +1,20 @@
-"""
-This module contains example tests for a Kedro project.
-Tests should be placed in ``src/tests``, in modules that mirror your
-project's structure, and in files named test_*.py.
-"""
-import pytest
+"""Kedro pipeline registration tests."""
+
 from pathlib import Path
-from kedro.framework.session import KedroSession
+
 from kedro.framework.startup import bootstrap_project
 
-# The tests below are here for the demonstration purpose
-# and should be replaced with the ones testing the project
-# functionality
+from mllearn.pipeline_registry import register_pipelines
 
-class TestKedroRun:
-    def test_kedro_run_no_pipeline(self):
-    # This example test expects a pipeline run failure, since
-    # the default project template contains no pipelines.
+
+class TestPipelines:
+    def test_default_pipeline_has_train_and_evaluate_nodes(self):
         bootstrap_project(Path.cwd())
-
-        with pytest.raises(Exception) as excinfo:
-            with KedroSession.create(project_path=Path.cwd()) as session:
-                session.run()
-
-        assert "Pipeline contains no nodes" in str(excinfo.value)
+        pipes = register_pipelines()
+        names = {node.name for node in pipes["__default__"].nodes}
+        assert "rename_columns" in names
+        assert "prepare_model_table" in names
+        assert "time_split" in names
+        assert "train_hist_gb" in names
+        assert "evaluate_model" in names
+        assert not any(node.name == "create_lag_features" for node in pipes["__default__"].nodes)

@@ -12,3 +12,15 @@ feature_engineering:
     "casual": "casual_users"
     "registered": "registered_users"
     "cnt": "total_users"
+
+model:
+  cutoff: "2012-10-01"
+  target: total_users
+  random_state: 42
+  leakage_or_id:
+    - instant
+    - casual_users
+    - registered_users
+  drop_from_features:
+    - datetime
+    - dteday
