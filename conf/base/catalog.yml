@@ -38,3 +38,7 @@ predictions:
 metrics:
   type: json.JSONDataset
   filepath: data/08_reporting/metrics.json
+
+error_plots:
+  type: matplotlib.MatplotlibDataset
+  filepath: data/08_reporting/error_plots.png
