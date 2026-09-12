@@ -1,5 +1,6 @@
 import pandas as pd
 from typing import Dict
+from sklearn.ensemble import HistGradientBoostingRegressor
 
 
 def rename_columns(df: pd.DataFrame, renaming_map: Dict[str, str]) -> pd.DataFrame:
@@ -31,3 +32,13 @@ def time_split(
         X.iloc[n_train:].reset_index(drop=True),
         y.iloc[n_train:].reset_index(drop=True),
     )
+
+
+def predict_model(
+    X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.DataFrame
+) -> pd.DataFrame:
+    """Fit HGB on train, predict on test. Score (MAE/RMSE) is the next process."""
+    model = HistGradientBoostingRegressor(random_state=42)
+    model.fit(X_train, y_train.squeeze())
+    pred = model.predict(X_test)
+    return pd.DataFrame({"predicted_users": pred})
