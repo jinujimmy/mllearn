@@ -21,6 +21,9 @@ data/**
 # ignore kedro-viz metadata
 .viz
 
+# matplotlib font cache (local)
+.matplotlib/
+
 # ignore file based logs
 *.log
 
