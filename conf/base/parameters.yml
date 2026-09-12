@@ -12,3 +12,9 @@ feature_engineering:
     "casual": "casual_users"
     "registered": "registered_users"
     "cnt": "total_users"
+
+prepare_data:
+  leakage_or_id:
+    - instant
+    - casual_users
+    - registered_users

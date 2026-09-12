@@ -10,3 +10,7 @@ raw_data:
 renamed_data:
   type: pandas.CSVDataset
   filepath: data/02_intermediate/renamed_data.csv
+
+model_table:
+  type: pandas.CSVDataset
+  filepath: data/03_primary/model_table.csv
