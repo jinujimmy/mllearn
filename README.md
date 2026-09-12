@@ -1,18 +1,18 @@
 # MLLearn — hourly bike-share demand
 
-Kedro pipeline that predicts **how many riders use the system in a given hour** (`total_users`), using calendar and weather only. Built as a learning project that follows the same steps an analyst would take: define the target, block leakage, split in time, beat a naive baseline, then show **where** the model is still wrong.
+Kedro pipeline that predicts how many riders use the system in a given hour (`total_users`), using calendar and weather only. Built as a learning project that follows the same steps an analyst would take: define the target, block leakage, split in time, beat a naive baseline, then show where the model is still wrong.
 
 **Data:** [UCI Bike Sharing (hourly)](https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset). Files under `data/` are not in git.
 
-A naive forecast that always uses the **train-period mean** (~185 riders) misses the test set by about **157 MAE**. A no-lag `HistGradientBoostingRegressor` on season, hour, holiday/workday, and weather cuts that to **44.8 MAE / 68.9 RMSE** on hours from **1 Oct 2012 onward**.
+A naive forecast that always uses the train-period mean (~185 riders) misses the test set by about **157 MAE**. A no-lag `HistGradientBoostingRegressor` on season, hour, holiday/workday, and weather cuts that to **44.8 MAE / 68.9 RMSE** on hours from **1 Oct 2012** onward.
 
-That is useful for staffing and capacity in the average hour. Residual plots still show **commute peaks** (roughly 7–8 and 17–19) as the expensive misses — not a reason to treat the model as a full operations system yet.
+That is useful for staffing and capacity in the average hour. Residual plots still show commute peaks (roughly 7–8 and 17–19) as the expensive misses — not a reason to treat the model as a full operations system yet.
 
-## Process 
+## Process
 
-- **Target** is `cnt` renamed to `total_users`. `casual_users` + `registered_users` *are* the target, so those columns never go into `X`. Row id `instant` is dropped too.
-- **Data was sorted by time and Split is by time**, not a shuffled sklearn split. Train = rows before `2012-10-01`; test = the rest (~15.2k / 2.2k hours).
-- **No lag features in this baseline** on purpose. The model can only use information available in that hour’s calendar and weather. Lags (24h / 168h) are a next experiment, not hidden in this run.
+- **Target** is `cnt` renamed to `total_users`. `casual_users` + `registered_users` are the target, so those columns never go into `X`. Row id `instant` is dropped too.
+- Data was **sorted by time** and the **split is by time**, not a shuffled sklearn split. Train = rows before `2012-10-01`; test = the rest (~15.2k / 2.2k hours).
+- **No lag features** in this baseline on purpose. The model can only use information available in that hour’s calendar and weather. Lags (24h / 168h) are a next experiment, not hidden in this run.
 
 ## Pipeline (Kedro)
 
