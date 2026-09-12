@@ -9,10 +9,4 @@ def create_feature_pipeline() -> pipeline:
             outputs="renamed_data",
             name="rename_columns",
         ),
-        # node(
-        #     func=create_lag_features,
-        #     inputs="renamed_data",
-        #     outputs="lag_features",
-        #     name="create_lag_features",
-        # ),
     ])
