@@ -177,30 +177,39 @@ def compare_models(
         _test_error_frame(model_table, X_test, y_test, pred, cutoff)
         for pred in preds
     ]
-    week0 = frames[0][1]
+    test0 = frames[0][0]
+    test_start = pd.to_datetime(test0["datetime"].min()).date()
+    test_end = pd.to_datetime(test0["datetime"].max()).date()
+    n_days = (pd.Timestamp(test_end) - pd.Timestamp(test_start)).days + 1
 
     fig = plt.figure(figsize=(12, 9.5), layout="constrained")
     gs = fig.add_gridspec(3, 1, height_ratios=[3.4, 3.4, 1.1])
     ax_week = fig.add_subplot(gs[0])
     ax_hour = fig.add_subplot(gs[1])
     ax_scores = fig.add_subplot(gs[2])
+
+    daily_actual = test0.groupby(test0["datetime"].dt.normalize())["actual"].mean()
     ax_week.plot(
-        week0["datetime"],
-        week0["actual"],
+        daily_actual.index,
+        daily_actual.to_numpy(),
         color="#222222",
         linewidth=2,
         label="actual",
     )
-    for metrics, (test, week) in zip(rows, frames):
+    for metrics, (test, _) in zip(rows, frames):
         name = metrics["name"]
+        daily_pred = test.groupby(test["datetime"].dt.normalize())["pred"].mean()
         ax_week.plot(
-            week["datetime"],
-            week["pred"],
+            daily_pred.index,
+            daily_pred.to_numpy(),
             color=MODEL_COLORS[name],
             label=PRED_LEGEND[name],
         )
-    ax_week.set_ylabel("riders / hour")
-    ax_week.set_title("Test week: actual vs predicted-HG, predicted-CB, predicted-RF")
+    ax_week.set_ylabel("mean riders / hour")
+    ax_week.set_title(
+        f"Test daily trend ({test_start} to {test_end}, {n_days} days): "
+        "actual vs predicted-HG, predicted-CB, predicted-RF"
+    )
     ax_week.legend(loc="upper right", ncol=2)
 
     hours = list(range(24))
@@ -219,7 +228,9 @@ def compare_models(
     ax_hour.set_xticks(hours)
     ax_hour.set_xlabel("hr")
     ax_hour.set_ylabel("MAE (riders)")
-    ax_hour.set_title("Test MAE by hour (same colors as the trend lines)")
+    ax_hour.set_title(
+        f"MAE by hour of day — full test set ({n_days} days, same colors as the trend)"
+    )
     ax_hour.legend(loc="upper right")
 
     ax_scores.axis("off")
