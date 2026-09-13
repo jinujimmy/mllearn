@@ -2,8 +2,10 @@ import pandas as pd
 from typing import Dict
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
-from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.ensemble import HistGradientBoostingRegressor,RandomForestRegressor
+from catboost import CatBoostRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+
 
 
 def rename_columns(df: pd.DataFrame, renaming_map: Dict[str, str]) -> pd.DataFrame:
@@ -38,21 +40,33 @@ def time_split(
 
 
 def predict_model(
-    X_train: pd.DataFrame, y_train: pd.DataFrame, X_test: pd.DataFrame
+    X_train: pd.DataFrame,
+    y_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+    model_name: str,
+    random_state: int,
 ) -> pd.DataFrame:
-    """Fit HGB on train, predict on test. Score (MAE/RMSE) is the next process."""
-    model = HistGradientBoostingRegressor(random_state=42)
+    """Fit the model named in YAML, predict on test."""
+    if model_name == "hist_gb":
+        model = HistGradientBoostingRegressor(random_state=random_state)
+    elif model_name == "catboost":
+        model = CatBoostRegressor(random_state=random_state, verbose=0)
+    elif model_name == "random_forest":
+        model = RandomForestRegressor(random_state=random_state)
+    else:
+        raise ValueError(f"Unknown model_name: {model_name}")
+
     model.fit(X_train, y_train.squeeze())
     pred = model.predict(X_test)
     return pd.DataFrame({"predicted_users": pred})
 
 
-def score_model(y_true: pd.DataFrame, y_hat: pd.DataFrame) -> dict:
+def score_model(y_true: pd.DataFrame, y_hat: pd.DataFrame, name: str) -> dict:
     """Test MAE/RMSE. Same numbers as the notebook score() helper."""
     mae = float(mean_absolute_error(y_true.squeeze(), y_hat.squeeze()))
     rmse = float(mean_squared_error(y_true.squeeze(), y_hat.squeeze()) ** 0.5)
-    print(f"{'HistGradientBoosting':20s}  MAE={mae:6.1f}  RMSE={rmse:6.1f}")
-    return {"mae": round(mae, 1), "rmse": round(rmse, 1)}
+    print(f"{name:20s}  MAE={mae:6.1f}  RMSE={rmse:6.1f}")
+    return {"name": name, "mae": round(mae, 1), "rmse": round(rmse, 1)}
 
 
 def plot_test_errors(
@@ -61,6 +75,7 @@ def plot_test_errors(
     y_test: pd.DataFrame,
     predictions: pd.DataFrame,
     cutoff: str,
+    name: str,
 ) -> Figure:
     """Notebook Step 4: first test week actual vs pred, then MAE by hour."""
     times = pd.to_datetime(model_table["datetime"])
@@ -80,16 +95,57 @@ def plot_test_errors(
     fig, axes = plt.subplots(2, 1, figsize=(10, 8))
     axes[0].plot(week["datetime"], week["actual"], label="actual")
     axes[0].plot(week["datetime"], week["pred"], label="predicted")
-    axes[0].set_title("Test week 1–7 Oct 2012: actual vs predicted total_users")
+    axes[0].set_title(f"{name}: test week 1–7 Oct 2012 actual vs predicted")
     axes[0].set_ylabel("riders per hour")
     axes[0].legend()
 
     err_by_hr = test.groupby("hr")["abs_err"].mean()
     axes[1].bar(err_by_hr.index, err_by_hr.values)
-    axes[1].set_title("Test set: mean |error| by hour of day")
+    axes[1].set_title(f"{name}: test set mean |error| by hour of day")
     axes[1].set_xlabel("hr")
     axes[1].set_ylabel("MAE (riders)")
     axes[1].set_xticks(range(24))
     fig.tight_layout()
     return fig
+
+
+def compare_models(
+    metrics_hist_gb: dict, metrics_catboost: dict, metrics_random_forest: dict
+) -> tuple[dict, str]:
+    """One JSON table plus a static HTML page with scores and plot images."""
+    rows = [metrics_hist_gb, metrics_catboost, metrics_random_forest]
+    comparison = {row["name"]: {"mae": row["mae"], "rmse": row["rmse"]} for row in rows}
+    table_rows = "".join(
+        f"<tr><td>{row['name']}</td><td>{row['mae']}</td><td>{row['rmse']}</td></tr>"
+        for row in rows
+    )
+    figures = "".join(
+        f"<h2>{row['name']}</h2>"
+        f"<img src=\"{row['name']}_error_plots.png\" alt=\"{row['name']} error plots\" "
+        f"style=\"max-width:100%;height:auto;\"/>"
+        for row in rows
+    )
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Bike-share model comparison</title>
+  <style>
+    body {{ font-family: sans-serif; margin: 2rem; }}
+    table {{ border-collapse: collapse; margin-bottom: 2rem; }}
+    th, td {{ border: 1px solid #ccc; padding: 0.4rem 0.8rem; text-align: left; }}
+  </style>
+</head>
+<body>
+  <h1>Hourly bike-share: model comparison</h1>
+  <p>Test period from 2012-10-01. Same features and split for every model.</p>
+  <table>
+    <thead><tr><th>model</th><th>MAE</th><th>RMSE</th></tr></thead>
+    <tbody>{table_rows}</tbody>
+  </table>
+  {figures}
+</body>
+</html>
+"""
+    return comparison, html
 

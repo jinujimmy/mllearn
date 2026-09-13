@@ -21,3 +21,10 @@ prepare_data:
 
 time_split:
   cutoff: "2012-10-01"
+
+predict:
+  random_state: 42
+  model_names:
+    - hist_gb
+    - catboost
+    - random_forest
