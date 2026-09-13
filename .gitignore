@@ -18,6 +18,11 @@ data/**
 # also keep all .gitkeep files
 !.gitkeep
 
+# reporting artifacts for GitHub (not CSVs)
+!data/08_reporting/*.html
+!data/08_reporting/*.json
+!data/08_reporting/*.png
+
 # ignore kedro-viz metadata
 .viz
 

@@ -1,0 +1,14 @@
+{
+  "hist_gb": {
+    "mae": 44.8,
+    "rmse": 68.9
+  },
+  "catboost": {
+    "mae": 43.7,
+    "rmse": 67.8
+  },
+  "random_forest": {
+    "mae": 46.7,
+    "rmse": 72.0
+  }
+}
