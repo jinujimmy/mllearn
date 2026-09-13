@@ -96,7 +96,7 @@ def create_training_pipeline() -> Pipeline:
                     "catboost.metrics",
                     "random_forest.metrics",
                 ],
-                outputs=["comparison", "comparison_html"],
+                outputs=["comparison", "comparison_plot"],
                 name="compare_models",
             ),
         ]

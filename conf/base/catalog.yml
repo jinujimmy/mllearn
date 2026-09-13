@@ -71,6 +71,6 @@ comparison:
   type: json.JSONDataset
   filepath: data/08_reporting/comparison.json
 
-comparison_html:
-  type: text.TextDataset
-  filepath: data/08_reporting/comparison.html
+comparison_plot:
+  type: matplotlib.MatplotlibDataset
+  filepath: data/08_reporting/comparison.png

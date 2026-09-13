@@ -105,47 +105,41 @@ def plot_test_errors(
     axes[1].set_xlabel("hr")
     axes[1].set_ylabel("MAE (riders)")
     axes[1].set_xticks(range(24))
+    mae = float(mean_absolute_error(test["actual"], test["pred"]))
+    rmse = float(mean_squared_error(test["actual"], test["pred"]) ** 0.5)
+    fig.suptitle(
+        f"{name}  |  MAE={mae:.1f}  RMSE={rmse:.1f}",
+        fontsize=14,
+        fontweight="bold",
+    )
     fig.tight_layout()
+    fig.subplots_adjust(top=0.90)
     return fig
 
 
 def compare_models(
     metrics_hist_gb: dict, metrics_catboost: dict, metrics_random_forest: dict
-) -> tuple[dict, str]:
-    """One JSON table plus a static HTML page with scores and plot images."""
+) -> tuple[dict, Figure]:
+    """JSON scores plus one PNG table naming hist_gb, catboost, and random_forest."""
     rows = [metrics_hist_gb, metrics_catboost, metrics_random_forest]
     comparison = {row["name"]: {"mae": row["mae"], "rmse": row["rmse"]} for row in rows}
-    table_rows = "".join(
-        f"<tr><td>{row['name']}</td><td>{row['mae']}</td><td>{row['rmse']}</td></tr>"
-        for row in rows
+    names = ", ".join(row["name"] for row in rows)
+
+    fig, ax = plt.subplots(figsize=(8, 3.5))
+    ax.axis("off")
+    ax.set_title(
+        f"Test MAE / RMSE: {names}",
+        fontsize=13,
+        fontweight="bold",
+        pad=12,
     )
-    figures = "".join(
-        f"<h2>{row['name']}</h2>"
-        f"<img src=\"{row['name']}_error_plots.png\" alt=\"{row['name']} error plots\" "
-        f"style=\"max-width:100%;height:auto;\"/>"
-        for row in rows
+    table = ax.table(
+        cellText=[[row["name"], row["mae"], row["rmse"]] for row in rows],
+        colLabels=["model", "MAE", "RMSE"],
+        loc="center",
+        cellLoc="center",
     )
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <title>Bike-share model comparison</title>
-  <style>
-    body {{ font-family: sans-serif; margin: 2rem; }}
-    table {{ border-collapse: collapse; margin-bottom: 2rem; }}
-    th, td {{ border: 1px solid #ccc; padding: 0.4rem 0.8rem; text-align: left; }}
-  </style>
-</head>
-<body>
-  <h1>Hourly bike-share: model comparison</h1>
-  <p>Test period from 2012-10-01. Same features and split for every model.</p>
-  <table>
-    <thead><tr><th>model</th><th>MAE</th><th>RMSE</th></tr></thead>
-    <tbody>{table_rows}</tbody>
-  </table>
-  {figures}
-</body>
-</html>
-"""
-    return comparison, html
+    table.scale(1, 2)
+    fig.tight_layout()
+    return comparison, fig
 
