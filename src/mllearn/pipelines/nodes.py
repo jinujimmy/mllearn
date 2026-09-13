@@ -69,15 +69,31 @@ def score_model(y_true: pd.DataFrame, y_hat: pd.DataFrame, name: str) -> dict:
     return {"name": name, "mae": round(mae, 1), "rmse": round(rmse, 1)}
 
 
-def plot_test_errors(
+MODEL_COLORS = {
+    "hist_gb": "#1f77b4",
+    "catboost": "#ff7f0e",
+    "random_forest": "#2ca02c",
+}
+PRED_LEGEND = {
+    "hist_gb": "predicted-HG",
+    "catboost": "predicted-CB",
+    "random_forest": "predicted-RF",
+}
+DISPLAY_NAMES = {
+    "hist_gb": "HistGradient",
+    "catboost": "Catboost",
+    "random_forest": "RF",
+}
+
+
+def _test_error_frame(
     model_table: pd.DataFrame,
     X_test: pd.DataFrame,
     y_test: pd.DataFrame,
     predictions: pd.DataFrame,
     cutoff: str,
-    name: str,
-) -> Figure:
-    """Notebook Step 4: first test week actual vs pred, then MAE by hour."""
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Test rows with actual/pred, plus the first week after cutoff."""
     times = pd.to_datetime(model_table["datetime"])
     test_times = times[times >= pd.Timestamp(cutoff)].reset_index(drop=True)
     test = pd.DataFrame(
@@ -91,24 +107,43 @@ def plot_test_errors(
     test["abs_err"] = (test["actual"] - test["pred"]).abs()
     week_end = pd.Timestamp(cutoff) + pd.Timedelta(days=7)
     week = test[(test["datetime"] >= cutoff) & (test["datetime"] < week_end)]
+    return test, week
 
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
-    axes[0].plot(week["datetime"], week["actual"], label="actual")
-    axes[0].plot(week["datetime"], week["pred"], label="predicted")
-    axes[0].set_title(f"{name}: test week 1–7 Oct 2012 actual vs predicted")
-    axes[0].set_ylabel("riders per hour")
-    axes[0].legend()
+
+def _draw_week_and_hour(
+    ax_week, ax_hour, week: pd.DataFrame, test: pd.DataFrame, heading: str
+) -> None:
+    ax_week.plot(week["datetime"], week["actual"], label="actual")
+    ax_week.plot(week["datetime"], week["pred"], label="predicted")
+    ax_week.set_title(f"{heading} Charts")
+    ax_week.set_ylabel("riders per hour")
+    ax_week.legend()
 
     err_by_hr = test.groupby("hr")["abs_err"].mean()
-    axes[1].bar(err_by_hr.index, err_by_hr.values)
-    axes[1].set_title(f"{name}: test set mean |error| by hour of day")
-    axes[1].set_xlabel("hr")
-    axes[1].set_ylabel("MAE (riders)")
-    axes[1].set_xticks(range(24))
+    ax_hour.bar(err_by_hr.index, err_by_hr.values)
+    ax_hour.set_title("mean |error| by hour of day")
+    ax_hour.set_xlabel("hr")
+    ax_hour.set_ylabel("MAE (riders)")
+    ax_hour.set_xticks(range(24))
+
+
+def plot_test_errors(
+    model_table: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,
+    predictions: pd.DataFrame,
+    cutoff: str,
+    name: str,
+) -> Figure:
+    """Notebook Step 4: first test week actual vs pred, then MAE by hour."""
+    test, week = _test_error_frame(model_table, X_test, y_test, predictions, cutoff)
+    heading = DISPLAY_NAMES.get(name, name)
+    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    _draw_week_and_hour(axes[0], axes[1], week, test, heading)
     mae = float(mean_absolute_error(test["actual"], test["pred"]))
     rmse = float(mean_squared_error(test["actual"], test["pred"]) ** 0.5)
     fig.suptitle(
-        f"{name}  |  MAE={mae:.1f}  RMSE={rmse:.1f}",
+        f"{heading} Scores  |  MAE={mae:.1f}  RMSE={rmse:.1f}",
         fontsize=14,
         fontweight="bold",
     )
@@ -118,28 +153,89 @@ def plot_test_errors(
 
 
 def compare_models(
-    metrics_hist_gb: dict, metrics_catboost: dict, metrics_random_forest: dict
+    model_table: pd.DataFrame,
+    X_test: pd.DataFrame,
+    y_test: pd.DataFrame,
+    cutoff: str,
+    predictions_hist_gb: pd.DataFrame,
+    predictions_catboost: pd.DataFrame,
+    predictions_random_forest: pd.DataFrame,
+    metrics_hist_gb: dict,
+    metrics_catboost: dict,
+    metrics_random_forest: dict,
 ) -> tuple[dict, Figure]:
-    """JSON scores plus one PNG table naming hist_gb, catboost, and random_forest."""
+    """One PNG: overlay actual + three predictions, then hour errors in the same colors."""
     rows = [metrics_hist_gb, metrics_catboost, metrics_random_forest]
+    preds = [
+        predictions_hist_gb,
+        predictions_catboost,
+        predictions_random_forest,
+    ]
     comparison = {row["name"]: {"mae": row["mae"], "rmse": row["rmse"]} for row in rows}
-    names = ", ".join(row["name"] for row in rows)
 
-    fig, ax = plt.subplots(figsize=(8, 3.5))
-    ax.axis("off")
-    ax.set_title(
-        f"Test MAE / RMSE: {names}",
-        fontsize=13,
-        fontweight="bold",
-        pad=12,
+    frames = [
+        _test_error_frame(model_table, X_test, y_test, pred, cutoff)
+        for pred in preds
+    ]
+    week0 = frames[0][1]
+
+    fig = plt.figure(figsize=(12, 9.5), layout="constrained")
+    gs = fig.add_gridspec(3, 1, height_ratios=[3.4, 3.4, 1.1])
+    ax_week = fig.add_subplot(gs[0])
+    ax_hour = fig.add_subplot(gs[1])
+    ax_scores = fig.add_subplot(gs[2])
+    ax_week.plot(
+        week0["datetime"],
+        week0["actual"],
+        color="#222222",
+        linewidth=2,
+        label="actual",
     )
-    table = ax.table(
-        cellText=[[row["name"], row["mae"], row["rmse"]] for row in rows],
+    for metrics, (test, week) in zip(rows, frames):
+        name = metrics["name"]
+        ax_week.plot(
+            week["datetime"],
+            week["pred"],
+            color=MODEL_COLORS[name],
+            label=PRED_LEGEND[name],
+        )
+    ax_week.set_ylabel("riders / hour")
+    ax_week.set_title("Test week: actual vs predicted-HG, predicted-CB, predicted-RF")
+    ax_week.legend(loc="upper right", ncol=2)
+
+    hours = list(range(24))
+    bar_width = 0.25
+    offsets = (-bar_width, 0.0, bar_width)
+    for offset, metrics, (test, _) in zip(offsets, rows, frames):
+        name = metrics["name"]
+        err_by_hr = test.groupby("hr")["abs_err"].mean().reindex(hours)
+        ax_hour.bar(
+            [h + offset for h in hours],
+            err_by_hr.to_numpy(),
+            width=bar_width,
+            color=MODEL_COLORS[name],
+            label=PRED_LEGEND[name],
+        )
+    ax_hour.set_xticks(hours)
+    ax_hour.set_xlabel("hr")
+    ax_hour.set_ylabel("MAE (riders)")
+    ax_hour.set_title("Test MAE by hour (same colors as the trend lines)")
+    ax_hour.legend(loc="upper right")
+
+    ax_scores.axis("off")
+    ax_scores.set_title("Scores", fontweight="bold", loc="left")
+    table = ax_scores.table(
+        cellText=[
+            [PRED_LEGEND[row["name"]], row["mae"], row["rmse"]] for row in rows
+        ],
         colLabels=["model", "MAE", "RMSE"],
         loc="center",
         cellLoc="center",
     )
-    table.scale(1, 2)
-    fig.tight_layout()
+    table.scale(1, 1.6)
+    for i, row in enumerate(rows):
+        table[(i + 1, 0)].get_text().set_color(MODEL_COLORS[row["name"]])
+        table[(i + 1, 0)].get_text().set_fontweight("bold")
+
     return comparison, fig
 

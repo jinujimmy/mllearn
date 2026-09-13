@@ -92,6 +92,13 @@ def create_training_pipeline() -> Pipeline:
             node(
                 func=compare_models,
                 inputs=[
+                    "model_table",
+                    "X_test",
+                    "y_test",
+                    "params:time_split.cutoff",
+                    "hist_gb.predictions",
+                    "catboost.predictions",
+                    "random_forest.predictions",
                     "hist_gb.metrics",
                     "catboost.metrics",
                     "random_forest.metrics",
