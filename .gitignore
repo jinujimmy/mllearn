@@ -24,6 +24,9 @@ data/**
 # matplotlib font cache (local)
 .matplotlib/
 
+# CatBoost local training logs
+catboost_info/
+
 # ignore file based logs
 *.log
 

@@ -31,14 +31,46 @@ y_test:
   type: pandas.CSVDataset
   filepath: data/05_model_input/y_test.csv
 
-predictions:
+hist_gb.predictions:
   type: pandas.CSVDataset
-  filepath: data/07_model_output/predictions.csv
+  filepath: data/07_model_output/hist_gb_predictions.csv
 
-metrics:
+catboost.predictions:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/catboost_predictions.csv
+
+random_forest.predictions:
+  type: pandas.CSVDataset
+  filepath: data/07_model_output/random_forest_predictions.csv
+
+hist_gb.metrics:
   type: json.JSONDataset
-  filepath: data/08_reporting/metrics.json
+  filepath: data/08_reporting/hist_gb_metrics.json
 
-error_plots:
+catboost.metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/catboost_metrics.json
+
+random_forest.metrics:
+  type: json.JSONDataset
+  filepath: data/08_reporting/random_forest_metrics.json
+
+hist_gb.error_plots:
   type: matplotlib.MatplotlibDataset
-  filepath: data/08_reporting/error_plots.png
+  filepath: data/08_reporting/hist_gb_error_plots.png
+
+catboost.error_plots:
+  type: matplotlib.MatplotlibDataset
+  filepath: data/08_reporting/catboost_error_plots.png
+
+random_forest.error_plots:
+  type: matplotlib.MatplotlibDataset
+  filepath: data/08_reporting/random_forest_error_plots.png
+
+comparison:
+  type: json.JSONDataset
+  filepath: data/08_reporting/comparison.json
+
+comparison_html:
+  type: text.TextDataset
+  filepath: data/08_reporting/comparison.html
