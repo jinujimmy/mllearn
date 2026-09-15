@@ -2,7 +2,6 @@ from kedro.pipeline import Pipeline, node, pipeline
 
 from .nodes import (
     compare_models,
-    plot_test_errors,
     predict_model,
     prepare_model_table,
     score_model,
@@ -13,7 +12,7 @@ MODEL_NAMES = ("hist_gb", "catboost", "random_forest")
 
 
 def _model_branch(model_name: str) -> Pipeline:
-    """Predict, score, and plot one learner. Dataset names are prefixed with model_name."""
+    """Predict and score one learner. Dataset names are prefixed with model_name."""
 
     def _predict(X_train, y_train, X_test, random_state):
         return predict_model(X_train, y_train, X_test, model_name, random_state)
@@ -24,13 +23,6 @@ def _model_branch(model_name: str) -> Pipeline:
         return score_model(y_true, y_hat, model_name)
 
     _score.__name__ = f"score_{model_name}"
-
-    def _plot(model_table, X_test, y_test, predictions, cutoff):
-        return plot_test_errors(
-            model_table, X_test, y_test, predictions, cutoff, model_name
-        )
-
-    _plot.__name__ = f"plot_{model_name}"
 
     return pipeline(
         [
@@ -50,18 +42,6 @@ def _model_branch(model_name: str) -> Pipeline:
                 inputs=["y_test", f"{model_name}.predictions"],
                 outputs=f"{model_name}.metrics",
                 name=f"score_{model_name}",
-            ),
-            node(
-                func=_plot,
-                inputs=[
-                    "model_table",
-                    "X_test",
-                    "y_test",
-                    f"{model_name}.predictions",
-                    "params:time_split.cutoff",
-                ],
-                outputs=f"{model_name}.error_plots",
-                name=f"plot_{model_name}",
             ),
         ]
     )

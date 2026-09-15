@@ -55,18 +55,6 @@ random_forest.metrics:
   type: json.JSONDataset
   filepath: data/08_reporting/random_forest_metrics.json
 
-hist_gb.error_plots:
-  type: matplotlib.MatplotlibDataset
-  filepath: data/08_reporting/hist_gb_error_plots.png
-
-catboost.error_plots:
-  type: matplotlib.MatplotlibDataset
-  filepath: data/08_reporting/catboost_error_plots.png
-
-random_forest.error_plots:
-  type: matplotlib.MatplotlibDataset
-  filepath: data/08_reporting/random_forest_error_plots.png
-
 comparison:
   type: json.JSONDataset
   filepath: data/08_reporting/comparison.json

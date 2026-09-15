@@ -79,11 +79,6 @@ PRED_LEGEND = {
     "catboost": "predicted-CB",
     "random_forest": "predicted-RF",
 }
-DISPLAY_NAMES = {
-    "hist_gb": "HistGradient",
-    "catboost": "Catboost",
-    "random_forest": "RF",
-}
 
 
 def _test_error_frame(
@@ -92,8 +87,8 @@ def _test_error_frame(
     y_test: pd.DataFrame,
     predictions: pd.DataFrame,
     cutoff: str,
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Test rows with actual/pred, plus the first week after cutoff."""
+) -> pd.DataFrame:
+    """Test rows with actual, predicted, and |error|."""
     times = pd.to_datetime(model_table["datetime"])
     test_times = times[times >= pd.Timestamp(cutoff)].reset_index(drop=True)
     test = pd.DataFrame(
@@ -105,51 +100,7 @@ def _test_error_frame(
         }
     )
     test["abs_err"] = (test["actual"] - test["pred"]).abs()
-    week_end = pd.Timestamp(cutoff) + pd.Timedelta(days=7)
-    week = test[(test["datetime"] >= cutoff) & (test["datetime"] < week_end)]
-    return test, week
-
-
-def _draw_week_and_hour(
-    ax_week, ax_hour, week: pd.DataFrame, test: pd.DataFrame, heading: str
-) -> None:
-    ax_week.plot(week["datetime"], week["actual"], label="actual")
-    ax_week.plot(week["datetime"], week["pred"], label="predicted")
-    ax_week.set_title(f"{heading} Charts")
-    ax_week.set_ylabel("riders per hour")
-    ax_week.legend()
-
-    err_by_hr = test.groupby("hr")["abs_err"].mean()
-    ax_hour.bar(err_by_hr.index, err_by_hr.values)
-    ax_hour.set_title("mean |error| by hour of day")
-    ax_hour.set_xlabel("hr")
-    ax_hour.set_ylabel("MAE (riders)")
-    ax_hour.set_xticks(range(24))
-
-
-def plot_test_errors(
-    model_table: pd.DataFrame,
-    X_test: pd.DataFrame,
-    y_test: pd.DataFrame,
-    predictions: pd.DataFrame,
-    cutoff: str,
-    name: str,
-) -> Figure:
-    """Notebook Step 4: first test week actual vs pred, then MAE by hour."""
-    test, week = _test_error_frame(model_table, X_test, y_test, predictions, cutoff)
-    heading = DISPLAY_NAMES.get(name, name)
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
-    _draw_week_and_hour(axes[0], axes[1], week, test, heading)
-    mae = float(mean_absolute_error(test["actual"], test["pred"]))
-    rmse = float(mean_squared_error(test["actual"], test["pred"]) ** 0.5)
-    fig.suptitle(
-        f"{heading} Scores  |  MAE={mae:.1f}  RMSE={rmse:.1f}",
-        fontsize=14,
-        fontweight="bold",
-    )
-    fig.tight_layout()
-    fig.subplots_adjust(top=0.90)
-    return fig
+    return test
 
 
 def compare_models(
@@ -177,7 +128,7 @@ def compare_models(
         _test_error_frame(model_table, X_test, y_test, pred, cutoff)
         for pred in preds
     ]
-    test0 = frames[0][0]
+    test0 = frames[0]
     test_start = pd.to_datetime(test0["datetime"].min()).date()
     test_end = pd.to_datetime(test0["datetime"].max()).date()
     n_days = (pd.Timestamp(test_end) - pd.Timestamp(test_start)).days + 1
@@ -196,7 +147,7 @@ def compare_models(
         linewidth=2,
         label="actual",
     )
-    for metrics, (test, _) in zip(rows, frames):
+    for metrics, test in zip(rows, frames):
         name = metrics["name"]
         daily_pred = test.groupby(test["datetime"].dt.normalize())["pred"].mean()
         ax_week.plot(
@@ -215,7 +166,7 @@ def compare_models(
     hours = list(range(24))
     bar_width = 0.25
     offsets = (-bar_width, 0.0, bar_width)
-    for offset, metrics, (test, _) in zip(offsets, rows, frames):
+    for offset, metrics, test in zip(offsets, rows, frames):
         name = metrics["name"]
         err_by_hr = test.groupby("hr")["abs_err"].mean().reindex(hours)
         ax_hour.bar(

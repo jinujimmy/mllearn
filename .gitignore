@@ -21,6 +21,7 @@ data/**
 # reporting artifacts for GitHub (not CSVs)
 !data/08_reporting/*.json
 !data/08_reporting/*.png
+!data/08_reporting/*.jpg
 
 # ignore kedro-viz metadata
 .viz
